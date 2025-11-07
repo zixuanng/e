@@ -4,6 +4,23 @@
 
 An interactive web application that uses AI to recognize hand gestures in real-time through webcam input. The system translates basic sign language gestures (like "Yes," "No," "Stop," "OK," and "I Love You") into text and provides visual feedback with confidence scores. Designed for accessibility evaluation and demonstration purposes, particularly for judges assessing gesture recognition accuracy and usability in competitive or educational settings.
 
+## Recent Changes (November 7, 2025)
+
+### Completed Implementation
+- ✅ Full TensorFlow.js integration with Google Teachable Machine model
+- ✅ Real-time webcam gesture detection with prediction loop
+- ✅ Backend API for session and prediction persistence
+- ✅ Complete frontend UI with all interactive components
+- ✅ Session tracking with statistics (total recognitions, average confidence, recognition rate)
+- ✅ Text-to-speech output for recognized gestures
+- ✅ Dark/light mode support
+- ✅ Responsive design for desktop, tablet, and mobile
+
+### Bug Fixes
+- Fixed date handling in session persistence (ISO string to Date conversion)
+- Added error logging for all API mutations
+- Proper session lifecycle management (create, update, close)
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -39,7 +56,7 @@ Preferred communication style: Simple, everyday language.
 **Gesture Recognition:**
 - Google Teachable Machine integration via `@teachablemachine/image` library
 - TensorFlow.js (`@tensorflow/tfjs`) for client-side model inference
-- Pre-trained model hosted externally, loaded at runtime
+- Pre-trained model hosted at: https://teachablemachine.withgoogle.com/models/BOtrRZ4ho/
 - Real-time webcam processing with prediction loop using requestAnimationFrame
 - Gesture classes: Yes (👍), No (👎), Stop (✋), OK (👌), I Love You (🤟)
 
@@ -47,7 +64,7 @@ Preferred communication style: Simple, everyday language.
 - Webcam video stream captured via MediaDevices API
 - Frame-by-frame analysis through TensorFlow model
 - Confidence scores calculated for each gesture class
-- Threshold-based gesture detection (typically >80% confidence for visual feedback)
+- Threshold-based gesture detection (>70% for display, >80% for recording)
 
 ### Backend Architecture
 
@@ -57,13 +74,15 @@ Preferred communication style: Simple, everyday language.
 - RESTful endpoints for session and prediction management
 - JSON request/response format
 - Session tracking for evaluation metrics
+- Date coercion for ISO string to Date conversion
 
 **Key Endpoints:**
 - `POST /api/sessions` - Create new recognition session
-- `GET /api/sessions/:id` - Retrieve session details
-- `PATCH /api/sessions/:id` - Update session statistics
+- `GET /api/sessions` - Retrieve all sessions
+- `GET /api/sessions/:id` - Retrieve specific session details
+- `PATCH /api/sessions/:id` - Update session statistics and endTime
 - `POST /api/predictions` - Log individual gesture predictions
-- `GET /api/predictions/session/:sessionId` - Retrieve session prediction history
+- `GET /api/sessions/:id/predictions` - Retrieve session prediction history
 
 **Storage Layer:**
 - In-memory storage implementation (MemStorage class) for development
@@ -72,7 +91,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Schema
 
-**Technology:** PostgreSQL with Drizzle ORM (configured but not yet fully integrated)
+**Technology:** Designed for PostgreSQL with Drizzle ORM (currently using in-memory storage)
 
 **Tables:**
 
@@ -91,23 +110,49 @@ Preferred communication style: Simple, everyday language.
 - `confidence` - Real number (0-1) for prediction confidence
 
 **Schema Validation:**
-- Zod schemas for runtime validation
+- Zod schemas for runtime validation with date coercion
 - Type-safe insert operations with Drizzle-Zod integration
 
 ### Component Architecture
 
 **Core Components:**
 
-1. **WebcamFeed** - Video capture with MediaDevices API, visual feedback overlay, active border pulse during high-confidence detection
-2. **GestureCard** - Large display of current recognized gesture with emoji representation and confidence badge
-3. **ConfidenceMeter** - Real-time horizontal progress bars showing confidence levels for all gesture classes
-4. **PredictionHistory** - Scrollable timeline of recent predictions with timestamps
-5. **StatsPanel** - Dashboard metrics displaying total recognitions, average confidence, and recognition rate
-6. **ControlPanel** - User controls for camera toggle, speech synthesis, and theme switching
+1. **WebcamFeed** (`client/src/components/WebcamFeed.tsx`)
+   - Video capture with MediaDevices API
+   - Visual feedback overlay with current gesture and confidence
+   - Active border pulse during high-confidence detection (>80%)
+   - Error handling for camera permissions
+
+2. **GestureCard** (`client/src/components/GestureCard.tsx`)
+   - Large display of current recognized gesture with emoji representation
+   - Confidence badge showing percentage
+   - Hover elevation for interactive feel
+
+3. **ConfidenceMeter** (`client/src/components/ConfidenceMeter.tsx`)
+   - Real-time horizontal progress bars showing confidence levels for all gesture classes
+   - Sorted by confidence (highest first)
+   - Percentage labels and smooth transitions
+
+4. **PredictionHistory** (`client/src/components/PredictionHistory.tsx`)
+   - Scrollable timeline of recent predictions with timestamps
+   - Limited to last 10 predictions
+   - Monospace font for timestamps
+
+5. **StatsPanel** (`client/src/components/StatsPanel.tsx`)
+   - Dashboard metrics displaying:
+     - Total recognitions
+     - Average confidence percentage
+     - Recognition rate (detections per second)
+
+6. **ControlPanel** (`client/src/components/ControlPanel.tsx`)
+   - User controls for:
+     - Camera toggle (Start/Stop)
+     - Speech synthesis toggle
+     - Dark/light mode toggle
 
 **Component Communication:**
 - Props-based data flow from parent (Home page) to child components
-- Callback functions for user interactions (camera toggle, speech control)
+- Callback functions for user interactions
 - Refs for direct DOM manipulation (video element access)
 
 ### Real-time Features
@@ -119,13 +164,19 @@ Preferred communication style: Simple, everyday language.
 
 **Text-to-Speech:**
 - Web Speech API integration for accessibility
-- Automatic announcement of recognized gestures
-- Toggle control for enabling/disabling audio feedback
+- Automatic announcement of recognized gestures when enabled
+- Adjustable speech rate (1.2x speed)
 
 **Visual Feedback:**
 - Animated border pulse on high-confidence detection (>80%)
-- Real-time confidence bar updates
+- Real-time confidence bar updates with smooth transitions
 - Gesture emoji display with immediate updates
+
+**Session Persistence:**
+- Automatic session creation when camera starts
+- Real-time updates of session statistics after each gesture
+- Session closure with endTime when camera stops
+- All predictions saved with sessionId reference
 
 ## External Dependencies
 
@@ -143,6 +194,7 @@ Preferred communication style: Simple, everyday language.
 - Wouter for routing
 - Radix UI primitives for accessible components
 - Tailwind CSS for styling
+- Shadcn UI component library
 
 **Machine Learning:**
 - `@teachablemachine/image` - Google's pre-trained model interface
@@ -150,13 +202,13 @@ Preferred communication style: Simple, everyday language.
 
 **Form & Validation:**
 - React Hook Form with Zod resolvers for form handling
-- Zod for schema validation
+- Zod for schema validation and date coercion
 
 **Data Fetching:**
 - TanStack Query (React Query) for API state management
 - Native Fetch API for HTTP requests
 
-**Database (Configured):**
+**Database (Configured for future use):**
 - `@neondatabase/serverless` - Neon PostgreSQL driver
 - Drizzle ORM for type-safe database queries
 - Drizzle Kit for schema migrations
@@ -171,4 +223,43 @@ Preferred communication style: Simple, everyday language.
 - MediaDevices API (getUserMedia) for webcam access
 - Web Speech API for text-to-speech synthesis
 - RequestAnimationFrame for prediction loop timing
-- LocalStorage (potential use for theme/preferences)
+- LocalStorage for dark mode preference persistence
+
+## Development Workflow
+
+### Running the Application
+1. Start the development server: `npm run dev`
+2. The app will be available at http://localhost:5000
+3. Allow camera permissions when prompted
+4. Click "Start Camera" to begin gesture detection
+
+### Testing Notes
+- Camera permissions required for full functionality
+- WebGL support needed for TensorFlow.js
+- Automated tests limited by camera/WebGL requirements in test environments
+- Manual testing recommended for full gesture recognition flow
+
+## Production Readiness
+
+### Current Status
+- ✅ Core functionality complete and working
+- ✅ Session persistence implemented
+- ✅ Error handling and logging in place
+- ✅ Responsive design for all screen sizes
+- ✅ Accessibility features (text-to-speech, high contrast, large fonts)
+
+### Future Enhancements
+- UI toast notifications for mutation errors
+- Export session data functionality
+- Gesture training interface for custom gestures
+- Database migration from in-memory to PostgreSQL
+- Performance metrics tracking (latency, accuracy over time)
+- Multi-user gesture library with save/load capabilities
+
+## Architecture Decisions
+
+1. **In-Memory Storage**: Currently using MemStorage for simplicity, but designed with IStorage interface for easy database migration
+2. **Client-Side ML**: TensorFlow.js runs entirely in browser for privacy and reduced latency
+3. **Real-time Processing**: Uses requestAnimationFrame for smooth 60fps gesture detection
+4. **Mutation Error Handling**: Console logging with potential for UI notifications
+5. **Date Handling**: Zod coercion handles ISO string to Date conversion for API flexibility
