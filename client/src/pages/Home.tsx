@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import * as tmImage from '@teachablemachine/image';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import WebcamFeed from '@/components/WebcamFeed';
 import ConfidenceMeter from '@/components/ConfidenceMeter';
 import GestureCard from '@/components/GestureCard';
@@ -41,6 +43,37 @@ export default function Home() {
   const recognitionCountRef = useRef(0);
   const confidenceSumRef = useRef(0);
   const startTimeRef = useRef(0);
+  const sessionIdRef = useRef<string | null>(null);
+
+  const createSessionMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', '/api/sessions', { totalRecognitions: 0, averageConfidence: 0 });
+      return await res.json();
+    },
+    onError: (error) => {
+      console.error('Failed to create session:', error);
+    },
+  });
+
+  const updateSessionMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const res = await apiRequest('PATCH', `/api/sessions/${id}`, data);
+      return await res.json();
+    },
+    onError: (error) => {
+      console.error('Failed to update session:', error);
+    },
+  });
+
+  const savePredictionMutation = useMutation({
+    mutationFn: async (data: { sessionId: string; gesture: string; confidence: number }) => {
+      const res = await apiRequest('POST', '/api/predictions', data);
+      return await res.json();
+    },
+    onError: (error) => {
+      console.error('Failed to save prediction:', error);
+    },
+  });
 
   useEffect(() => {
     const root = document.documentElement;
@@ -102,6 +135,14 @@ export default function Home() {
             confidence,
           }, ...prev.slice(0, 9)]);
 
+          if (sessionIdRef.current) {
+            savePredictionMutation.mutate({
+              sessionId: sessionIdRef.current,
+              gesture,
+              confidence,
+            });
+          }
+
           if (isSpeechEnabled && 'speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(gesture);
             utterance.rate = 1.2;
@@ -109,11 +150,22 @@ export default function Home() {
           }
 
           const elapsed = (Date.now() - startTimeRef.current) / 1000;
+          const avgConfidence = confidenceSumRef.current / recognitionCountRef.current;
           setStats({
             total: recognitionCountRef.current,
-            avgConfidence: confidenceSumRef.current / recognitionCountRef.current,
+            avgConfidence,
             rate: recognitionCountRef.current / elapsed,
           });
+
+          if (sessionIdRef.current) {
+            updateSessionMutation.mutate({
+              id: sessionIdRef.current,
+              data: {
+                totalRecognitions: recognitionCountRef.current,
+                averageConfidence: avgConfidence,
+              },
+            });
+          }
         }
       }
 
@@ -131,16 +183,30 @@ export default function Home() {
     }
   };
 
-  const handleToggleCamera = () => {
+  const handleToggleCamera = async () => {
     setIsCameraActive(!isCameraActive);
     if (!isCameraActive) {
       recognitionCountRef.current = 0;
       confidenceSumRef.current = 0;
       lastGestureRef.current = '';
       startTimeRef.current = Date.now();
+      
+      try {
+        const session = await createSessionMutation.mutateAsync();
+        sessionIdRef.current = session.id;
+      } catch (error) {
+        console.error('Failed to create session:', error);
+      }
     } else {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+      }
+      
+      if (sessionIdRef.current) {
+        updateSessionMutation.mutate({
+          id: sessionIdRef.current,
+          data: { endTime: new Date() },
+        });
       }
     }
   };
