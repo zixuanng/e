@@ -1,0 +1,72 @@
+🔍 1. Project Overview
+
+Goal:
+Develop an interactive, AI-powered system that recognizes basic hand gestures used by deaf individuals (e.g., greetings, affirmations, emotions) and translates them into text or voice output.
+The machine will be used by judges in competitions (e.g., accessibility hackathons or school events) to evaluate gesture recognition accuracy, usability, and social impact.
+
+Core Concept:
+→ A front-end web app (React-based) connected to a gesture recognition model trained via Google Teachable Machine, with a real-time webcam interface.
+
+⚙️ 2. System Architecture Overview
+Frontend Layer (User Interaction)
+
+Tech stack: React + HTML + CSS + JavaScript
+
+Core functions:
+
+Real-time webcam stream
+
+On-screen gesture visualization (via bounding boxes or outlines)
+
+Gesture prediction display (text or speech)
+
+UI for judges to interact (accuracy scoring, usability testing)
+
+Accessibility features:
+
+Text-to-speech (for non-signers)
+
+Color-contrast themes
+
+Large fonts, clear feedback animations
+
+AI Model Layer
+
+Tool: Google Teachable Machine (Image Project – Pose/Hand classification)
+
+Classes: Basic hand gestures such as:
+
+👍 Yes / Good
+
+👎 No / Bad
+
+🤟 I Love You
+
+✋ Stop
+
+👌 OK
+
+Output: Probability scores for each class
+
+Export format: TensorFlow.js model (.json + weight files)
+
+Integration Layer
+
+Load model using @tensorflow/tfjs in React
+
+Capture webcam feed (getUserMedia)
+
+Perform frame-by-frame prediction
+
+Display prediction confidence levels live
+
+🧩 3. Key Features
+Feature	Description	Purpose
+Real-time Gesture Detection	Continuous webcam-based recognition	Core functionality
+Confidence Meter	Visual bar or percentage display for model certainty	Helps judges evaluate model accuracy
+Speech Output	Converts recognized gesture → synthesized voice	Accessibility bridge
+Gesture Training Interface (optional)	Allow competitors to add new gesture samples	Competition-friendly customization
+Data Dashboard (optional)	Show recognition latency, number of correct recognitions	Performance scoring
+
+
+URL to teachable machine model: https://teachablemachine.withgoogle.com/models/BOtrRZ4ho/
