@@ -27,7 +27,7 @@ export default defineConfig({
     },
   },
   root: path.resolve(import.meta.dirname, "client"),
-  base: '/zixuanng-e-replit/',
+  base: '/e/',
   build: {
     outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
